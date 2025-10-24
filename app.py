@@ -159,6 +159,8 @@ def display_kpis(df: pd.DataFrame) -> None:
 
 def display_revenue_chart(df: pd.DataFrame) -> None:
     # Revenue over time line chart
+    st.subheader("Revenue Trends")
+    
     if df.empty:
         st.info("No data to display for the selected filters.")
         return
@@ -167,68 +169,276 @@ def display_revenue_chart(df: pd.DataFrame) -> None:
         df.groupby(df["order_date"].dt.date)["revenue"].sum().reset_index(name="revenue")
     )
     fig1 = px.line(daily_sales, x="order_date", y="revenue", title="Revenue Over Time")
+    
+    # Enhanced styling
+    fig1.update_traces(
+        line=dict(color='#1f77b4', width=3),
+        hovertemplate='<b>Date:</b> %{x}<br><b>Revenue:</b> $%{y:,.2f}<extra></extra>'
+    )
+    
     fig1.update_layout(
-        xaxis_rangeslider_visible=True,  # Enable range slider for zooming
+        xaxis_rangeslider_visible=True,
         xaxis=dict(
             type="date",
-            rangeslider=dict(visible=True)
-        )
+            rangeslider=dict(visible=True),
+            title="Date",
+            title_font=dict(size=14, color='#2c3e50'),
+            tickfont=dict(size=12, color='#34495e')
+        ),
+        yaxis=dict(
+            title="Revenue ($)",
+            title_font=dict(size=14, color='#2c3e50'),
+            tickfont=dict(size=12, color='#34495e'),
+            tickformat='$,.0f'
+        ),
+        title=dict(
+            text="Revenue Over Time",
+            font=dict(size=18, color='#2c3e50', family="Arial Black"),
+            x=0.5
+        ),
+        plot_bgcolor='rgba(248,249,250,0.8)',
+        paper_bgcolor='white',
+        font=dict(family="Arial, sans-serif"),
+        hovermode='x unified',
+        margin=dict(l=60, r=60, t=80, b=60)
     )
+    
+    fig1.update_xaxes(showgrid=True, gridwidth=1, gridcolor='rgba(128,128,128,0.2)')
+    fig1.update_yaxes(showgrid=True, gridwidth=1, gridcolor='rgba(128,128,128,0.2)')
+    
     st.plotly_chart(fig1, use_container_width=True)
+    st.markdown("---")
 
 
 def display_category_revenue_chart(df: pd.DataFrame) -> None:
-    # Revenue by category bar chart
+    # Revenue by category bar chart with dynamic KPIs
+    st.subheader("Category Performance")
+    
     if df.empty:
         st.info("No data to display for the selected filters.")
         return
 
+    # Calculate category-specific KPIs
     category_sales = (
         df.groupby("category")["revenue"].sum().reset_index(name="revenue")
     )
+    
+    top_category = category_sales.loc[category_sales["revenue"].idxmax()]
+    lowest_category = category_sales.loc[category_sales["revenue"].idxmin()]
+    num_categories = len(category_sales)
+    avg_category_revenue = category_sales["revenue"].mean()
+    
+    # Display category KPIs
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Top Category", top_category["category"])
+    with col2:
+        st.metric("Lowest Category", lowest_category["category"])
+    with col3:
+        st.metric("Active Categories", f"{num_categories}")
+    with col4:
+        st.metric("Avg Category Revenue", f"${avg_category_revenue:,.2f}")
+    
+    # Display chart
     fig2 = px.bar(category_sales, x="category", y="revenue", title="Revenue by Category")
-    fig2.update_xaxes(tickangle=45)  # Rotate labels for better readability
-    fig2.update_layout(
-        xaxis=dict(fixedrange=True),  # Disable zoom on x-axis
-        yaxis=dict(fixedrange=True)   # Disable zoom on y-axis
+    
+    # Enhanced styling
+    fig2.update_traces(
+        marker=dict(
+            color='#3498db',
+            line=dict(color='#2980b9', width=1.5),
+            opacity=0.8
+        ),
+        hovertemplate='<b>Category:</b> %{x}<br><b>Revenue:</b> $%{y:,.2f}<extra></extra>'
     )
+    
+    fig2.update_layout(
+        xaxis=dict(
+            fixedrange=True,
+            title="Category",
+            title_font=dict(size=14, color='#2c3e50'),
+            tickfont=dict(size=11, color='#34495e'),
+            tickangle=45
+        ),
+        yaxis=dict(
+            fixedrange=True,
+            title="Revenue ($)",
+            title_font=dict(size=14, color='#2c3e50'),
+            tickfont=dict(size=12, color='#34495e'),
+            tickformat='$,.0f'
+        ),
+        title=dict(
+            text="Revenue by Category",
+            font=dict(size=18, color='#2c3e50', family="Arial Black"),
+            x=0.5
+        ),
+        plot_bgcolor='rgba(248,249,250,0.8)',
+        paper_bgcolor='white',
+        font=dict(family="Arial, sans-serif"),
+        margin=dict(l=60, r=60, t=80, b=100)
+    )
+    
+    fig2.update_xaxes(showgrid=False)
+    fig2.update_yaxes(showgrid=True, gridwidth=1, gridcolor='rgba(128,128,128,0.2)')
+    
     st.plotly_chart(fig2, use_container_width=True)
+    st.markdown("---")
 
 
 def display_pie_chart(df: pd.DataFrame) -> None:
-    # Revenue distribution pie chart
+    # Revenue distribution pie chart with dynamic KPIs
+    st.subheader("Revenue Distribution")
+    
     if df.empty:
         st.info("No data to display for the selected filters.")
         return
 
+    # Calculate distribution-specific KPIs
     category_sales = (
         df.groupby("category")["revenue"].sum().reset_index(name="revenue")
     )
+    
+    total_revenue = category_sales["revenue"].sum()
+    largest_share = category_sales["revenue"].max()
+    largest_share_pct = (largest_share / total_revenue * 100)
+    smallest_share = category_sales["revenue"].min()
+    smallest_share_pct = (smallest_share / total_revenue * 100)
+    
+    # Calculate revenue concentration (top 3 categories)
+    top_3_revenue = category_sales.nlargest(3, "revenue")["revenue"].sum()
+    concentration_pct = (top_3_revenue / total_revenue * 100)
+    
+    # Display distribution KPIs
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Largest Share", f"{largest_share_pct:.1f}%")
+    with col2:
+        st.metric("Smallest Share", f"{smallest_share_pct:.1f}%")
+    with col3:
+        st.metric("Top 3 Concentration", f"{concentration_pct:.1f}%")
+    with col4:
+        revenue_spread = largest_share_pct - smallest_share_pct
+        st.metric("Revenue Spread", f"{revenue_spread:.1f}%")
+    
+    # Display chart
     fig3 = px.pie(category_sales, values="revenue", names="category", title="Revenue Distribution by Category")
-    fig3.update_traces(textposition='inside', textinfo='percent+label')
-    fig3.update_layout(
-        showlegend=True,
-        dragmode=False  # Disable dragging/zooming
+    
+    # Enhanced styling with beautiful colors
+    colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8']
+    
+    fig3.update_traces(
+        textposition='inside', 
+        textinfo='percent+label',
+        textfont=dict(size=12, color='white', family="Arial"),
+        marker=dict(
+            colors=colors,
+            line=dict(color='white', width=2)
+        ),
+        hovertemplate='<b>%{label}</b><br>Revenue: $%{value:,.2f}<br>Percentage: %{percent}<extra></extra>'
     )
+    
+    fig3.update_layout(
+        title=dict(
+            text="Revenue Distribution by Category",
+            font=dict(size=18, color='#2c3e50', family="Arial Black"),
+            x=0.5
+        ),
+        showlegend=True,
+        legend=dict(
+            orientation="v",
+            yanchor="middle",
+            y=0.5,
+            xanchor="left",
+            x=1.05,
+            font=dict(size=11, color='#34495e')
+        ),
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        font=dict(family="Arial, sans-serif"),
+        margin=dict(l=60, r=120, t=80, b=60),
+        dragmode=False
+    )
+    
     st.plotly_chart(fig3, use_container_width=True)
+    st.markdown("---")
 
 
 def display_orders_chart(df: pd.DataFrame) -> None:
-    # Orders by category bar chart
+    # Orders by category bar chart with dynamic KPIs
+    st.subheader("Order Volume Analysis")
+    
     if df.empty:
         st.info("No data to display for the selected filters.")
         return
 
+    # Calculate order-specific KPIs
     category_orders = (
         df.groupby("category")["order_id"].count().reset_index(name="orders")
     )
+    
+    # Calculate additional order metrics
+    daily_orders = df.groupby(df["order_date"].dt.date)["order_id"].count()
+    peak_day_orders = daily_orders.max()
+    avg_daily_orders = daily_orders.mean()
+    
+    most_ordered_category = category_orders.loc[category_orders["orders"].idxmax()]
+    least_ordered_category = category_orders.loc[category_orders["orders"].idxmin()]
+    
+    # Display order KPIs
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Most Ordered", most_ordered_category["category"])
+    with col2:
+        st.metric("Least Ordered", least_ordered_category["category"])
+    with col3:
+        st.metric("Peak Day Orders", f"{peak_day_orders:,}")
+    with col4:
+        st.metric("Avg Daily Orders", f"{avg_daily_orders:.1f}")
+    
+    # Display chart
     fig4 = px.bar(category_orders, x="category", y="orders", title="Number of Orders by Category")
-    fig4.update_xaxes(tickangle=45)
-    fig4.update_layout(
-        xaxis=dict(fixedrange=True),  # Disable zoom on x-axis
-        yaxis=dict(fixedrange=True)   # Disable zoom on y-axis
+    
+    # Enhanced styling with gradient colors
+    fig4.update_traces(
+        marker=dict(
+            color='#E74C3C',
+            line=dict(color='#C0392B', width=1.5),
+            opacity=0.8
+        ),
+        hovertemplate='<b>Category:</b> %{x}<br><b>Orders:</b> %{y:,}<extra></extra>'
     )
+    
+    fig4.update_layout(
+        xaxis=dict(
+            fixedrange=True,
+            title="Category",
+            title_font=dict(size=14, color='#2c3e50'),
+            tickfont=dict(size=11, color='#34495e'),
+            tickangle=45
+        ),
+        yaxis=dict(
+            fixedrange=True,
+            title="Number of Orders",
+            title_font=dict(size=14, color='#2c3e50'),
+            tickfont=dict(size=12, color='#34495e'),
+            tickformat=','
+        ),
+        title=dict(
+            text="Number of Orders by Category",
+            font=dict(size=18, color='#2c3e50', family="Arial Black"),
+            x=0.5
+        ),
+        plot_bgcolor='rgba(248,249,250,0.8)',
+        paper_bgcolor='white',
+        font=dict(family="Arial, sans-serif"),
+        margin=dict(l=60, r=60, t=80, b=100)
+    )
+    
+    fig4.update_xaxes(showgrid=False)
+    fig4.update_yaxes(showgrid=True, gridwidth=1, gridcolor='rgba(128,128,128,0.2)')
+    
     st.plotly_chart(fig4, use_container_width=True)
+    st.markdown("---")
 
 
 def display_charts(df: pd.DataFrame) -> None:
@@ -248,30 +458,97 @@ def generate_ai_insights(df: pd.DataFrame) -> str:
     except ImportError:
         return "openai package not installed. Run: pip install openai"
 
-    # Get basic stats for the prompt
+    # Calculate comprehensive business metrics
     total_sales = float(df["revenue"].sum())
     total_orders = int(df["order_id"].nunique())
     avg_order_value = total_sales / total_orders if total_orders else 0
-    top_category = (
-        df.groupby("category")["revenue"].sum().idxmax() if not df.empty else "N/A"
-    )
+    
+    # Category analysis
+    category_revenue = df.groupby("category")["revenue"].sum().sort_values(ascending=False)
+    category_orders = df.groupby("category")["order_id"].count().sort_values(ascending=False)
+    top_category = category_revenue.index[0] if not category_revenue.empty else "N/A"
+    top_category_revenue = category_revenue.iloc[0] if not category_revenue.empty else 0
+    category_share = (top_category_revenue / total_sales * 100) if total_sales > 0 else 0
+    
+    # Time-based analysis
+    df['order_date'] = pd.to_datetime(df['order_date'])
+    daily_sales = df.groupby(df["order_date"].dt.date)["revenue"].sum()
+    monthly_sales = df.groupby(df["order_date"].dt.to_period('M'))["revenue"].sum()
+    
+    peak_day = daily_sales.idxmax() if not daily_sales.empty else "N/A"
+    peak_day_revenue = daily_sales.max() if not daily_sales.empty else 0
+    avg_daily_revenue = daily_sales.mean() if not daily_sales.empty else 0
+    
+    # Business performance metrics
+    days_active = len(daily_sales)
+    orders_per_day = total_orders / days_active if days_active > 0 else 0
+    revenue_per_day = total_sales / days_active if days_active > 0 else 0
+    
+    # Product performance
+    top_products = df.groupby("product_name")["revenue"].sum().sort_values(ascending=False).head(3)
+    
+    # Growth analysis (if sufficient data)
+    if len(monthly_sales) >= 2:
+        latest_month_revenue = monthly_sales.iloc[-1]
+        previous_month_revenue = monthly_sales.iloc[-2]
+        monthly_growth = ((latest_month_revenue - previous_month_revenue) / previous_month_revenue * 100) if previous_month_revenue > 0 else 0
+    else:
+        monthly_growth = 0
+        latest_month_revenue = monthly_sales.iloc[0] if len(monthly_sales) > 0 else 0
+    
+    # Price analysis
+    avg_product_price = df["price"].mean()
+    price_std = df["price"].std()
+    
+    # Build comprehensive prompt for AI analysis
+    prompt = f"""
+    Analyze this e-commerce business data and provide a comprehensive business intelligence report with specific metrics, actionable insights, and strategic recommendations.
 
-    # Build prompt for AI analysis
-    prompt = (
-        "Write a business analysis report for this e-commerce data. Use simple, clear sentences.\n\n"
-        f"Business Performance Summary:\n"
-        f"The company generated ${total_sales:,.2f} in total revenue.\n"
-        f"This came from {total_orders} customer orders.\n" 
-        f"The average order value is ${avg_order_value:,.2f}.\n"
-        f"The top-performing category is {top_category}.\n\n"
-        "Analyze what these numbers mean for the business and provide actionable recommendations."
-    )
+    FINANCIAL PERFORMANCE METRICS:
+    - Total Revenue: ${total_sales:,.2f}
+    - Total Orders: {total_orders:,}
+    - Average Order Value (AOV): ${avg_order_value:,.2f}
+    - Daily Revenue Run Rate: ${revenue_per_day:,.2f}
+    - Average Daily Orders: {orders_per_day:.1f}
+    - Monthly Growth Rate: {monthly_growth:+.1f}%
+    - Current Month Revenue: ${latest_month_revenue:,.2f}
+
+    CATEGORY PERFORMANCE ANALYSIS:
+    - Top Category: {top_category} (${top_category_revenue:,.2f} - {category_share:.1f}% of total revenue)
+    - Total Categories: {len(category_revenue)}
+    - Category Revenue Distribution: {dict(category_revenue.head(3))}
+    - Category Order Volume: {dict(category_orders.head(3))}
+
+    OPERATIONAL METRICS:
+    - Peak Sales Day: {peak_day} (${peak_day_revenue:,.2f})
+    - Average Daily Revenue: ${avg_daily_revenue:,.2f}
+    - Business Active Days: {days_active}
+    - Average Product Price: ${avg_product_price:.2f}
+    - Price Volatility (Std Dev): ${price_std:.2f}
+
+    TOP PERFORMING PRODUCTS:
+    {dict(top_products)}
+
+    ANALYSIS REQUIREMENTS:
+    1. Provide KPI analysis with specific percentage benchmarks
+    2. Identify revenue concentration risks and opportunities
+    3. Calculate customer acquisition efficiency metrics
+    4. Suggest pricing optimization strategies
+    5. Recommend inventory management improvements
+    6. Forecast growth potential based on current trends
+    7. Identify seasonal patterns and business cycles
+    8. Provide competitive positioning insights
+    9. Suggest marketing budget allocation by category
+    10. Recommend operational efficiency improvements
+
+    Format as a professional business analysis report with numbered sections and specific dollar amounts and percentages throughout.
+    """
 
     try:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=1000
+            max_tokens=2000
         )
         return response.choices[0].message.content
     except Exception as e:
@@ -314,20 +591,11 @@ def main() -> None:
     st.subheader("Key Performance Indicators")
     display_kpis(filtered_df)
     
-    # Create tabs for different visualizations
-    tab1, tab2, tab3, tab4 = st.tabs(["Revenue Trends", "Category Analysis", "Revenue Distribution", "Order Volume"])
-    
-    with tab1:
-        display_revenue_chart(filtered_df)
-    
-    with tab2:
-        display_category_revenue_chart(filtered_df)
-    
-    with tab3:
-        display_pie_chart(filtered_df)
-    
-    with tab4:
-        display_orders_chart(filtered_df)
+    # Display all charts on the same page with their own KPIs
+    display_revenue_chart(filtered_df)
+    display_category_revenue_chart(filtered_df)
+    display_pie_chart(filtered_df)
+    display_orders_chart(filtered_df)
 
     # AI Insights Button
     if st.sidebar.button("Generate AI Insights"):
