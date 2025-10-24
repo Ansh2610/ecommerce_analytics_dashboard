@@ -141,20 +141,28 @@ def display_kpis(df: pd.DataFrame) -> None:
         df.groupby(df["order_date"].dt.date).size().mean() if not df.empty else 0
     )
 
+    # Create uniform columns for all KPIs
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Total Revenue", f"${total_sales:,.2f}")
-    col2.metric("Total Orders", f"{total_orders}")
-    col3.metric("Avg Order Value", f"${avg_order_value:,.2f}")
-    col4.metric("Orders per Day", f"{orders_per_day:.1f}")
+    
+    with col1:
+        st.metric("Total Revenue", f"${total_sales:,.2f}")
+    
+    with col2:
+        st.metric("Total Orders", f"{total_orders:,}")
+    
+    with col3:
+        st.metric("Avg Order Value", f"${avg_order_value:,.2f}")
+    
+    with col4:
+        st.metric("Orders per Day", f"{orders_per_day:.1f}")
 
 
-def display_charts(df: pd.DataFrame) -> None:
-    # Display interactive charts: revenue over time, revenue by category, and orders by category
+def display_revenue_chart(df: pd.DataFrame) -> None:
+    # Revenue over time line chart
     if df.empty:
         st.info("No data to display for the selected filters.")
         return
 
-    # Line chart: revenue over time
     daily_sales = (
         df.groupby(df["order_date"].dt.date)["revenue"].sum().reset_index(name="revenue")
     )
@@ -168,7 +176,13 @@ def display_charts(df: pd.DataFrame) -> None:
     )
     st.plotly_chart(fig1, use_container_width=True)
 
-    # Bar chart: revenue by category
+
+def display_category_revenue_chart(df: pd.DataFrame) -> None:
+    # Revenue by category bar chart
+    if df.empty:
+        st.info("No data to display for the selected filters.")
+        return
+
     category_sales = (
         df.groupby("category")["revenue"].sum().reset_index(name="revenue")
     )
@@ -180,7 +194,16 @@ def display_charts(df: pd.DataFrame) -> None:
     )
     st.plotly_chart(fig2, use_container_width=True)
 
-    # Pie chart: revenue distribution by category
+
+def display_pie_chart(df: pd.DataFrame) -> None:
+    # Revenue distribution pie chart
+    if df.empty:
+        st.info("No data to display for the selected filters.")
+        return
+
+    category_sales = (
+        df.groupby("category")["revenue"].sum().reset_index(name="revenue")
+    )
     fig3 = px.pie(category_sales, values="revenue", names="category", title="Revenue Distribution by Category")
     fig3.update_traces(textposition='inside', textinfo='percent+label')
     fig3.update_layout(
@@ -189,7 +212,13 @@ def display_charts(df: pd.DataFrame) -> None:
     )
     st.plotly_chart(fig3, use_container_width=True)
 
-    # Additional chart: Orders by category
+
+def display_orders_chart(df: pd.DataFrame) -> None:
+    # Orders by category bar chart
+    if df.empty:
+        st.info("No data to display for the selected filters.")
+        return
+
     category_orders = (
         df.groupby("category")["order_id"].count().reset_index(name="orders")
     )
@@ -200,6 +229,11 @@ def display_charts(df: pd.DataFrame) -> None:
         yaxis=dict(fixedrange=True)   # Disable zoom on y-axis
     )
     st.plotly_chart(fig4, use_container_width=True)
+
+
+def display_charts(df: pd.DataFrame) -> None:
+    # Legacy function - now replaced by individual chart functions
+    pass
 
 
 def generate_ai_insights(df: pd.DataFrame) -> str:
@@ -279,8 +313,21 @@ def main() -> None:
     # Display KPIs and charts
     st.subheader("Key Performance Indicators")
     display_kpis(filtered_df)
-    st.subheader("Visualizations")
-    display_charts(filtered_df)
+    
+    # Create tabs for different visualizations
+    tab1, tab2, tab3, tab4 = st.tabs(["Revenue Trends", "Category Analysis", "Revenue Distribution", "Order Volume"])
+    
+    with tab1:
+        display_revenue_chart(filtered_df)
+    
+    with tab2:
+        display_category_revenue_chart(filtered_df)
+    
+    with tab3:
+        display_pie_chart(filtered_df)
+    
+    with tab4:
+        display_orders_chart(filtered_df)
 
     # AI Insights Button
     if st.sidebar.button("Generate AI Insights"):
