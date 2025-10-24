@@ -1,10 +1,3 @@
-"""
-Utility script to generate mock e-commerce data.
-
-Creates a CSV file with synthetic order records using Faker for realistic data.
-Usage: python generate_data.py --orders 2000 --seed 123
-"""
-
 import argparse
 import os
 from datetime import datetime
